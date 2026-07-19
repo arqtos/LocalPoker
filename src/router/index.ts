@@ -7,11 +7,6 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'Setup',
-      component: SetupView
-    },
-    {
-      path: '/game',
       name: 'Game',
       component: GameView
     }

@@ -18,6 +18,7 @@
     "@primeicons/vue": "^8.0.0",
     "@primeuix/themes": "^3.0.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@vueuse/core": "^14.3.0",
     "pinia": "^3.0.4",
     "primevue": "^5.0.0",
     "tailwindcss": "^4.3.3",

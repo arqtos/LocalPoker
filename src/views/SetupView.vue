@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { Card, InputNumber, Label, Button } from 'primevue';
 import { Plus, Minus } from '@primeicons/vue';
-import { usePokerStore } from '@/stores/counter';
+import { usePokerStore } from '@/stores/poker';
 import { useRouter } from 'vue-router';
 
 const store = usePokerStore();
 const router = useRouter();
 
 function onSubmit() {
-  store.createGame()
+  //store.createGame()
   router.push('/game')
 }
 </script>
