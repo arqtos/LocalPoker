@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   --font-sans: InterVariable, sans-serif;
@@ -6,9 +6,9 @@
   --bg-color: #1e1e2e;
 }
 
-/* :root {
+:root {
   background-color: var(--bg-color);
-} */
+}
 
 .grid-lines {
   @apply border border-solid border-white/10;
