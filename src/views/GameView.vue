@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import LabelValue from '@/components/LabelValue.vue'
-import NumberStepInput from '@/components/NumberStepInput.vue'
 import PlayerCard from '@/components/PlayerCard.vue'
+import type { PlayerModel } from '@/models/PlayerModel'
 import { usePokerStore } from '@/stores/poker'
-import { Plus } from '@primeicons/vue'
 import { useMediaQuery } from '@vueuse/core'
 import { Button, Dialog, Drawer, InputNumber, Slider, Toast, useToast } from 'primevue'
 import { computed, ref } from 'vue'
@@ -14,44 +13,46 @@ const toast = useToast()
 const raiseVisible = ref(false)
 const raiseValue = ref(store.bigBlind)
 
-function onStartGame() {
-  const errorMessage = store.startGame()
-  console.log(errorMessage)
+const selectedPlayers = ref<PlayerModel[]>([])
 
-  if (errorMessage)
-    toast.add({
-      summary: 'Error while starting game',
-      detail: errorMessage,
-      severity: 'error',
-      life: 3000,
-    })
-}
-
-const isDesktop = useMediaQuery('(min-width: 640px)');
+const isDesktop = useMediaQuery('(min-width: 640px)')
 const Modal = computed(() => ({
   Root: !isDesktop.value ? Drawer : Dialog,
 }))
+
+function onSelectWinner() {
+  if (selectedPlayers.value.length == 0)
+    toast.add({
+      summary: 'Error while selecting winner',
+      detail: 'Please select at least one player as the winner.',
+      severity: 'error',
+      life: 3000,
+    })
+  else {
+    store.selectWinner(selectedPlayers.value)
+    selectedPlayers.value = []
+  }
+}
 </script>
 
 <template>
   <div class="flex flex-col justify-center items-center gap-15">
     <Toast />
+    <span class="text-3xl">{{ store.betRoundName }} Round</span>
 
-    <span v-if="!store.isSetup" class="text-3xl"> Round {{ store.round + 1 }} </span>
-
-    <div v-if="!store.isSetup" class="flex flex-row gap-10">
+    <div class="flex flex-row gap-10">
       <LabelValue :label="'Big Blind'" :value="store.bigBlind.toString()" />
       <LabelValue :label="'Small Blind'" :value="store.smallBlind.toString()" />
     </div>
 
-    <span v-if="!store.isSetup" class="text-3xl max-md:hidden">
+    <!-- <span class="text-3xl max-md:hidden">
       It's
       {{ store.currentPlayer.name }}'<span
         v-if="store.currentPlayer.name.substring(store.currentPlayer.name.length - 1) != 's'"
         >s</span
       >
       turn
-    </span>
+    </span> -->
 
     <div
       class="flex flex-wrap lg:max-w-4/5 border border-white/10 divide-x divide-y divide-white/10"
@@ -60,52 +61,72 @@ const Modal = computed(() => ({
         <PlayerCard
           class="min-w-40 min-h-20"
           v-model="player.name"
+          v-model:selected="selectedPlayers"
           :player="player"
-          :is-setup="store.isSetup"
+          :is-setup="false"
           :is-dealer="store.currentDealer == player"
           :is-big-blind="store.currentBigBlind == player"
           :is-small-blind="store.currentSmallBlind == player"
           :is-current="store.currentPlayer == player"
+          :is-showdown="store.isShowdown"
           @delete="store.deletePlayer(player.id)"
         />
       </div>
-      <div v-if="store.isSetup" class="min-w-40 min-h-20">
-        <Button class="w-full h-full rounded-none!" variant="text" @click="store.addPlayer()">
-          <Plus />
-        </Button>
-      </div>
     </div>
 
-    <div v-if="!store.isSetup" class="flex flex-col items-center gap-5">
-      <span class="text-4xl">In Round</span>
-      <span class="text-3xl">{{ store.inRound }}</span>
+    <div class="flex flex-col items-center gap-5">
+      <span class="text-4xl">Pot</span>
+      <span class="text-3xl">{{ store.pot }}</span>
     </div>
 
-    <div v-if="!store.isSetup" class="flex flex-row gap-5 md:gap-10">
+    <div v-if="!store.isShowdown" class="flex flex-row gap-5 md:gap-10">
       <Button class="w-20 md:w-40 h-15" @click="store.fold()">Fold</Button>
-      <Button class="w-20 md:w-40 h-15" @click="store.call()">Check/Call</Button>
-      <Button class="w-20 md:w-40 h-15" @click="raiseVisible = true">Bet/Raise</Button>
+      <Button v-if="!store.mustAllIn" class="w-20 md:w-40 h-15 font-bold" @click="store.call()"
+        >Check/Call</Button
+      >
+      <Button
+        v-if="!store.mustAllIn"
+        class="w-20 md:w-40 h-15 font-bold"
+        @click="raiseVisible = true"
+        >Bet/Raise</Button
+      >
+      <Button v-else class="w-20 md:w-40 h-15 font-bold" @click="store.allIn()">All In</Button>
     </div>
+    <Button v-else class="w-20 md:w-40 h-15 font-bold" @click="onSelectWinner()">Select Winner</Button>
 
-    <component :is="Modal.Root" header="Set your raise" v-model:visible="raiseVisible" :position="isDesktop ? 'center' : 'bottom'" modal dismissableMask style="height: auto">
+    <component
+      :is="Modal.Root"
+      header="Set your raise"
+      v-model:visible="raiseVisible"
+      :position="isDesktop ? 'center' : 'bottom'"
+      modal
+      dismissableMask
+      style="height: auto"
+    >
       <div class="w-full mx-auto p-3">
         <InputNumber v-model="raiseValue" :showButtons="false" fluid class="mb-4" />
         <div class="flex flex-row items-center justify-between gap-4">
-          {{ store.highestBet }}
-          <Slider v-model="raiseValue" class="w-full" :min="store.highestBet" :max="store.currentPlayer.chips" :step="store.highestBet" />
+          {{ store.minBet }}
+          <Slider
+            v-model="raiseValue"
+            class="w-full"
+            :min="store.minBet"
+            :max="store.currentPlayer.chips"
+            :step="store.bigBlind"
+          />
           {{ store.currentPlayer.chips }}
         </div>
-        <Button class="w-full mt-4" @click="store.raise(raiseValue); raiseVisible = false" :disabled="raiseValue < store.highestBet || raiseValue > store.currentPlayer.chips">Raise</Button>
-    </div>
+        <Button
+          class="w-full mt-4"
+          @click="
+            store.raise(raiseValue),
+            raiseVisible = false
+          "
+          :disabled="raiseValue < store.minBet || raiseValue > store.currentPlayer.chips"
+        >
+          Raise
+        </Button>
+      </div>
     </component>
-
-    <div v-if="store.isSetup" class="flex flex-row gap-5 md:gap-10">
-      <NumberStepInput v-model="store.bigBlind" :label="'First Big Blind'" :input-id="'bigBlind'" />
-      <NumberStepInput v-model="store.startChips" :label="'Start Chips'" :input-id="'chipCount'" />
-    </div>
-
-    <Button v-if="store.isSetup" variant="primary" @click="onStartGame()"> Start </Button>
   </div>
 </template>
-
-<style></style>

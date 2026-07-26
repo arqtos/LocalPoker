@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Minus, Plus } from '@primeicons/vue'
 import { InputNumber, Label } from 'primevue'
-import { ref } from 'vue'
 
 const props = defineProps<{
   label: string

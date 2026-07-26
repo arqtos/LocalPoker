@@ -1,86 +1,59 @@
 <script setup lang="ts">
-import { Card, InputNumber, Label, Button } from 'primevue'
-import { Plus, Minus } from '@primeicons/vue'
+import NumberStepInput from '@/components/NumberStepInput.vue'
+import PlayerCard from '@/components/PlayerCard.vue'
 import { usePokerStore } from '@/stores/poker'
-import { useRouter } from 'vue-router'
+import { Plus } from '@primeicons/vue'
+import { Button, Toast, useToast } from 'primevue'
 
 const store = usePokerStore()
-const router = useRouter()
+const toast = useToast()
 
-function onSubmit() {
-  //store.createGame()
-  router.push('/game')
+function onStartGame() {
+  const errorMessage = store.startGame()
+
+  if (errorMessage)
+    toast.add({
+      summary: 'Error while starting game',
+      detail: errorMessage,
+      severity: 'error',
+      life: 3000,
+    })
 }
 </script>
 
 <template>
-  <div class="h-full w-full flex justify-center items-center">
-    <Card>
-      <template #title>
-        <span class="text-5xl">Setup the Game</span>
-      </template>
-      <template #content>
-        <div class="flex flex-col items-center gap-4 mt-5">
-          <div class="flex-auto">
-            <Label class="font-bold! mb-2 block text-xl!" for="playerCount">Player Count</Label>
-            <InputNumber
-              v-model="store.playerCount"
-              showButtons
-              size="large"
-              buttonLayout="horizontal"
-              inputId="playerCount"
-              :inputStyle="{ width: '5rem' }"
-            >
-              <template #incrementicon>
-                <Plus />
-              </template>
-              <template #decrementicon>
-                <Minus />
-              </template>
-            </InputNumber>
-          </div>
+  <div class="flex flex-col justify-center items-center gap-15">
+    <Toast />
 
-          <div class="flex-auto">
-            <Label class="font-bold! mb-2 block text-xl!" for="bigBlind">First Big Blind</Label>
-            <InputNumber
-              v-model="store.bigBlind"
-              showButtons
-              size="large"
-              buttonLayout="horizontal"
-              inputId="bigBlind"
-              :inputStyle="{ width: '5rem' }"
-            >
-              <template #incrementicon>
-                <Plus />
-              </template>
-              <template #decrementicon>
-                <Minus />
-              </template>
-            </InputNumber>
-          </div>
+    <div
+      class="flex flex-wrap lg:max-w-4/5 border border-white/10 divide-x divide-y divide-white/10"
+    >
+      <div v-for="player in store.players" :key="player.id">
+        <PlayerCard
+          class="min-w-40 min-h-20"
+          v-model="player.name"
+          :player="player"
+          :is-setup="true"
+          :is-dealer="store.currentDealer == player"
+          :is-big-blind="store.currentBigBlind == player"
+          :is-small-blind="store.currentSmallBlind == player"
+          :is-current="store.currentPlayer == player"
+          :is-showdown="store.isShowdown"
+          @delete="store.deletePlayer(player.id)"
+        />
+      </div>
+      <div class="min-w-40 min-h-20 bg-slate-900/50">
+        <Button class="w-full h-full rounded-none!" variant="text" @click="store.addPlayer()">
+          <Plus />
+        </Button>
+      </div>
+    </div>
 
-          <div class="flex-auto">
-            <Label class="font-bold! mb-2 block text-xl!" for="chipCount">Start Chips</Label>
-            <InputNumber
-              v-model="store.startChips"
-              showButtons
-              size="large"
-              buttonLayout="horizontal"
-              inputId="chipCount"
-              :inputStyle="{ width: '5rem' }"
-            >
-              <template #incrementicon>
-                <Plus />
-              </template>
-              <template #decrementicon>
-                <Minus />
-              </template>
-            </InputNumber>
-          </div>
+    <div class="flex flex-row gap-5 md:gap-10">
+      <NumberStepInput v-model="store.bigBlind" :label="'First Big Blind'" :input-id="'bigBlind'" />
+      <NumberStepInput v-model="store.startChips" :label="'Start Chips'" :input-id="'chipCount'" />
+    </div>
 
-          <Button severity="primary" size="large" @click="onSubmit">Submit</Button>
-        </div>
-      </template>
-    </Card>
+    <Button variant="primary" @click="onStartGame()"> Start </Button>
   </div>
 </template>
