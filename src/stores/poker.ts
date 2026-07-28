@@ -204,9 +204,12 @@ export const usePokerStore = defineStore('poker', {
       else this.internalRound++
     },
     raise(amount: number) {
+      const neededBet = this.highestBet - this.currentPlayer.currentBet
+
       this.currentPlayer.chips -= amount
       this.currentPlayer.currentBet += amount
-      this.highestBet += amount
+
+      this.highestBet += amount - neededBet
 
       if (this.currentPlayer.chips == 0) this.currentPlayer.isInLimbo = true
 
