@@ -25,12 +25,10 @@ function onStartGame() {
   <div class="flex flex-col justify-center items-center gap-15">
     <Toast />
 
-    <div
-      class="flex flex-wrap lg:max-w-4/5 border border-white/10 divide-x divide-y divide-white/10"
-    >
+    <div class="flex flex-wrap justify-center lg:max-w-4/5 gap-1 mx-1">
       <div v-for="player in store.players" :key="player.id">
         <PlayerCard
-          class="min-w-40 min-h-20"
+          class="min-w-40 min-h-20 border border-white/10"
           v-model="player.name"
           :player="player"
           :is-setup="true"
@@ -43,7 +41,7 @@ function onStartGame() {
           @delete="store.deletePlayer(player.id)"
         />
       </div>
-      <div class="min-w-40 min-h-20 bg-slate-900/50">
+      <div class="min-w-40 min-h-20 bg-slate-900/50 border border-white/10">
         <Button class="w-full h-full rounded-none!" variant="text" @click="store.addPlayer()">
           <Plus />
         </Button>

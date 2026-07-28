@@ -118,10 +118,12 @@ export const usePokerStore = defineStore('poker', {
       this.players.push(newPlayer)
     },
     setPlayerName(id: number, name: string) {
-      if (this.players[id]) this.players[id].name = name
+      const playerIndex = this.players.findIndex((p) => p.id == id)
+      if (this.players[playerIndex]) this.players[playerIndex].name = name
     },
     deletePlayer(id: number) {
-      if (this.players[id]) this.players.splice(id, 1)
+      const playerIndex = this.players.findIndex((p) => p.id == id)
+      if (this.players[playerIndex]) this.players.splice(playerIndex, 1)
     },
     startGame(): string | undefined {
       if (this.players.length < 2) return 'Not enough players. Add more to start the game.'

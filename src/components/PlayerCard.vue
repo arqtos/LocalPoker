@@ -50,34 +50,30 @@ function onSelectPlayer() {
 <template>
   <div
     :class="
-      'p-3 md:p-5 h-full bg-slate-900/50 ' + isCurrentStyle + hasFoldedStyle + isBankruptStyle
+      'flex p-3 md:p-5 h-full bg-slate-900/50 ' + isCurrentStyle + hasFoldedStyle + isBankruptStyle
     "
   >
-    <div v-if="isSetup" class="flex gap-4">
-      <InputText class="w-30" v-model="model" />
+    <div v-if="isSetup" class="flex gap-4 m-auto">
+      <InputText class="w-25 md:w-30" v-model="model" />
       <Button iconOnly severity="secondary" aria-label="delete player" @click="emit('delete')">
         <Times />
       </Button>
     </div>
-    <div v-else class="grid grid-cols-2 h-full" @click="onSelectPlayer()">
+    <div v-else class="grid grid-cols-[1fr_auto] w-full h-full" @click="onSelectPlayer()">
       <div class="flex flex-col">
-        <div class="text-sm md:text-xl flex flex-row gap-1">
+        <div class="text-sm md:text-xl mb-1 flex flex-row gap-1 truncate">
           {{ model }}
-          <div v-if="!props.isShowdown" class="flex justify-center">
-            <Badge
-              v-if="props.player.hasFolded && !props.player.isBankrupt"
-              severity="danger"
-              class="my-auto"
-            />
-            <Badge v-if="props.isCurrent" severity="success" class="my-auto" />
-            <Badge v-if="props.player.isInLimbo" severity="info" class="my-auto" />
+          <div v-if="!props.isShowdown" class="flex justify-center my-auto">
+            <Badge v-if="props.player.hasFolded && !props.player.isBankrupt" severity="danger" />
+            <Badge v-if="props.isCurrent" severity="success" />
+            <Badge v-if="props.player.isInLimbo" severity="info" />
           </div>
         </div>
         <span>{{ props.player.chips }} Chips</span>
         <span>Current Bet: {{ props.player.currentBet }}</span>
       </div>
 
-      <div class="flex flex-col gap-1 items-end justify-start">
+      <div class="flex flex-col items-end justify-start">
         <Badge v-if="isDealer" value="Dealer" severity="secondary" class="w-fit" />
         <Badge
           v-if="isBigBlind"
@@ -93,6 +89,7 @@ function onSelectPlayer() {
         />
         <Checkbox
           v-if="props.isShowdown && props.elligibleShowdownPlayers.includes(props.player)"
+          readonly
           v-model="selected"
           :value="player"
           :input-id="player.id.toString()"

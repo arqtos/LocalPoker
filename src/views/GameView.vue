@@ -36,13 +36,23 @@ function onSelectWinner() {
 </script>
 
 <template>
-  <div class="flex flex-col justify-center items-center gap-15">
+  <div class="flex flex-col justify-center items-center gap-7 md:gap-15">
     <Toast />
     <span class="text-3xl">{{ store.betRoundName }} Round</span>
 
     <div class="flex flex-row gap-10">
-      <LabelValue :label="'Big Blind'" :value="store.bigBlind.toString()" />
-      <LabelValue :label="'Small Blind'" :value="store.smallBlind.toString()" />
+      <LabelValue
+        :label="'Big Blind'"
+        label-size="md"
+        :value="store.bigBlind.toString()"
+        value-size="2xl"
+      />
+      <LabelValue
+        :label="'Small Blind'"
+        label-size="md"
+        :value="store.smallBlind.toString()"
+        value-size="2xl"
+      />
     </div>
 
     <!-- <span class="text-3xl max-md:hidden">
@@ -54,12 +64,10 @@ function onSelectWinner() {
       turn
     </span> -->
 
-    <div
-      class="flex flex-wrap lg:max-w-4/5 border border-white/10 divide-x divide-y divide-white/10"
-    >
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 lg:max-w-4/5 gap-1">
       <div v-for="player in store.players" :key="player.id">
         <PlayerCard
-          class="min-w-40 min-h-20"
+          class="min-w-40 min-h-20 border border-white/10"
           v-model="player.name"
           v-model:selected="selectedPlayers"
           :player="player"
@@ -77,16 +85,19 @@ function onSelectWinner() {
 
     <div class="flex flex-row items-center gap-5">
       <div class="flex flex-col items-center gap-5">
-        <span class="text-4xl">Pot</span>
-        <span class="text-3xl">{{ store.pot }}</span>
+        <LabelValue label="Pot" label-size="xl" :value="store.pot.toString()" value-size="4xl" />
       </div>
       <div
         v-if="!store.isShowdown"
         v-for="sidepot in store.sidePots"
         class="flex flex-col items-center gap-5"
       >
-        <span class="text-4xl">Sidepot {{ store.sidePots.indexOf(sidepot) + 1 }}</span>
-        <span class="text-3xl">{{ sidepot.pot }}</span>
+        <LabelValue
+          :label="'Sidepot ' + (store.sidePots.indexOf(sidepot) + 1)"
+          label-size="xl"
+          :value="sidepot.pot.toString()"
+          value-size="4xl"
+        />
       </div>
     </div>
 
