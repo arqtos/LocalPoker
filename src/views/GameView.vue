@@ -11,7 +11,7 @@ const store = usePokerStore()
 const toast = useToast()
 
 const raiseVisible = ref(false)
-const raiseValue = ref(store.bigBlind)
+const raiseValue = ref(store.minBet)
 
 const selectedPlayers = ref<PlayerModel[]>([])
 
@@ -134,7 +134,7 @@ function onSelectWinner() {
           @click="(store.raise(raiseValue), (raiseVisible = false))"
           :disabled="raiseValue < store.minBet || raiseValue > store.currentPlayer.chips"
         >
-          Raise
+          Bet/Raise
         </Button>
       </div>
     </component>

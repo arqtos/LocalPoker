@@ -47,6 +47,9 @@ const stylePreset = definePreset(Aura, {
 
 const app = createApp(App)
 
+app.use(createPinia())
+app.use(router)
+
 app.use(PrimeVue, {
   theme: {
     preset: stylePreset,
@@ -54,7 +57,5 @@ app.use(PrimeVue, {
   license: import.meta.env.VITE_PRIME_VUE_LICENSE_KEY,
 })
 app.use(ToastService)
-app.use(createPinia())
-app.use(router)
 
 app.mount('#app')

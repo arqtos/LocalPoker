@@ -64,7 +64,6 @@ export const usePokerStore = defineStore('poker', {
         this.currentPlayer,
       )
       this.internalRound += response[1]
-      console.log(this.internalRound, response[1])
       return response[0]
     },
     currentBigBlind(): PlayerModel {

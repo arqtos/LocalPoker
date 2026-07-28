@@ -7,6 +7,7 @@ import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/localpoker/',
   plugins: [
     vue(),
     vueDevTools(),
@@ -19,6 +20,6 @@ export default defineConfig({
   },
   build: {
     outDir: fileURLToPath(new URL('./docs', import.meta.url)),
-    emptyOutDir: true
+    emptyOutDir: true,
   }
 })
