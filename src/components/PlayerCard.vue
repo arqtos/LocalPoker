@@ -13,6 +13,7 @@ const props = defineProps<{
   isCurrent: boolean
   isShowdown: boolean
   player: PlayerModel
+  elligibleShowdownPlayers: PlayerModel[]
 }>()
 
 const isSmallScreen = useMediaQuery('(max-width: 48rem)')
@@ -38,13 +39,11 @@ const isBankruptStyle = computed(() => {
 })
 
 function onSelectPlayer() {
-  if (!props.isShowdown)
-    return
-  
+  if (!props.isShowdown) return
+
   if (selected.value?.includes(props.player))
     selected.value = selected.value?.filter((p) => p.id != props.player.id)
-  else
-    selected.value = selected.value?.concat(props.player);
+  else selected.value = selected.value?.concat(props.player)
 }
 </script>
 
@@ -64,8 +63,15 @@ function onSelectPlayer() {
       <div class="flex flex-col">
         <div class="text-sm md:text-xl flex flex-row gap-1">
           {{ model }}
-          <!-- <Badge v-if="props.player.hasFolded" severity="danger" class="my-auto" />
-          <Badge v-if="props.isCurrent" severity="success" class="my-auto" /> -->
+          <div v-if="!props.isShowdown" class="flex justify-center">
+            <Badge
+              v-if="props.player.hasFolded && !props.player.isBankrupt"
+              severity="danger"
+              class="my-auto"
+            />
+            <Badge v-if="props.isCurrent" severity="success" class="my-auto" />
+            <Badge v-if="props.player.isInLimbo" severity="info" class="my-auto" />
+          </div>
         </div>
         <span>{{ props.player.chips }} Chips</span>
         <span>Current Bet: {{ props.player.currentBet }}</span>
@@ -85,7 +91,13 @@ function onSelectPlayer() {
           severity="secondary"
           class="w-fit"
         />
-        <Checkbox v-if="props.isShowdown && !props.player.hasFolded" v-model="selected" :value="player" :input-id="player.id.toString()" class="mt-auto" />
+        <Checkbox
+          v-if="props.isShowdown && props.elligibleShowdownPlayers.includes(props.player)"
+          v-model="selected"
+          :value="player"
+          :input-id="player.id.toString()"
+          class="mt-auto"
+        />
       </div>
     </div>
   </div>

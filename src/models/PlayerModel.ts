@@ -4,5 +4,6 @@ export interface PlayerModel {
   name: string
   currentBet: number
   hasFolded: boolean
+  isInLimbo: boolean
   isBankrupt: boolean
 }

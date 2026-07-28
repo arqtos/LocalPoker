@@ -1,22 +1,27 @@
 import { defineStore } from 'pinia'
 import type { PlayerModel } from '@/models/PlayerModel'
+import type { SidepotModel } from '@/models/SidepotModel'
+import _ from 'lodash'
 
 const blindSteps = [10, 20, 30, 50, 100, 150, 200, 400, 800]
 const rounds = ['Pre-Flop', 'Flop', 'Turn', 'River', 'Showdown']
 
-function getNextActivePlayer(players: PlayerModel[], startPoint: number, currentPlayer: PlayerModel): PlayerModel {
+function getNextActivePlayer(
+  players: PlayerModel[],
+  startPoint: number,
+  currentPlayer: PlayerModel,
+): [PlayerModel, number] {
   let i: number = 0
   let player: PlayerModel
   do {
     const nextIndex = (startPoint + i) % players.length
     player = players[nextIndex]!
-
-    if (player == currentPlayer) return player
+    if (player == currentPlayer) return [player, i]
 
     i++
-  } while (player.hasFolded || player.isBankrupt)
+  } while (player.hasFolded || player.isBankrupt || player.isInLimbo)
 
-  return player
+  return [player, i - 1]
 }
 
 export const usePokerStore = defineStore('poker', {
@@ -25,23 +30,25 @@ export const usePokerStore = defineStore('poker', {
     isShowdown: false,
     isOver: false,
     players: [] as PlayerModel[],
+    elligibleShowdownPlayers: [] as PlayerModel[],
     roundEndPlayer: null as PlayerModel | null,
     round: 0,
     betRound: 0,
     internalRound: 0,
     pot: 0,
-    sidePots: [] as number[],
+    sidePots: [] as SidepotModel[],
     startChips: 1000,
     bigBlind: 10,
     // blindStep: 0,
     highestBet: 0,
+    splitPotRemainder: 0,
   }),
   getters: {
     playerCount(): number {
       return this.players.length
     },
     activePlayers(): PlayerModel[] {
-      return this.players.filter((p) => p.hasFolded == false && p.isBankrupt == false)
+      return this.players.filter((p) => !p.hasFolded && !p.isBankrupt && !p.isInLimbo)
     },
     activePlayerCount(): number {
       return this.activePlayers.length
@@ -51,16 +58,35 @@ export const usePokerStore = defineStore('poker', {
       if (this.betRound == 0) startPoint = this.currentBigBlind.id
       else startPoint = this.currentDealer.id
 
-      return getNextActivePlayer(this.players, startPoint + this.internalRound + 1, this.currentPlayer)
+      const response = getNextActivePlayer(
+        this.players,
+        startPoint + this.internalRound + 1,
+        this.currentPlayer,
+      )
+      this.internalRound += response[1]
+      console.log(this.internalRound, response[1])
+      return response[0]
     },
     currentBigBlind(): PlayerModel {
-      return getNextActivePlayer(this.players, this.currentSmallBlind.id + 1, this.currentBigBlind)
+      return getNextActivePlayer(
+        this.players,
+        this.currentSmallBlind.id + 1,
+        this.currentBigBlind,
+      )[0]
     },
     currentSmallBlind(): PlayerModel {
-      return getNextActivePlayer(this.players, this.currentDealer.id + 1, this.currentSmallBlind)
+      return getNextActivePlayer(this.players, this.currentDealer.id + 1, this.currentSmallBlind)[0]
     },
     currentDealer(): PlayerModel {
-      return getNextActivePlayer(this.players, this.round % this.playerCount, this.currentDealer)
+      return getNextActivePlayer(this.players, this.round % this.playerCount, this.currentDealer)[0]
+    },
+    playersInLimboWithoutSidepot(): PlayerModel[] {
+      return this.players.filter(
+        (p) =>
+          p.isInLimbo &&
+          this.sidePots.every((sidepot) => !sidepot.players.includes(p)) &&
+          p.currentBet == 0,
+      )
     },
     // bigBlind(): number {
     //   const index = this.blindStep >= blindSteps.length ? blindSteps.length-1 : this.blindStep
@@ -76,7 +102,7 @@ export const usePokerStore = defineStore('poker', {
       return rounds[this.betRound % rounds.length]!
     },
     mustAllIn(): boolean {
-      return this.currentPlayer.chips < this.highestBet - this.currentPlayer.currentBet
+      return this.currentPlayer.chips <= this.highestBet - this.currentPlayer.currentBet
     },
   },
   actions: {
@@ -87,6 +113,7 @@ export const usePokerStore = defineStore('poker', {
         chips: this.startChips,
         currentBet: 0,
         hasFolded: false,
+        isInLimbo: false,
         isBankrupt: false,
       }
       this.players.push(newPlayer)
@@ -110,10 +137,23 @@ export const usePokerStore = defineStore('poker', {
       this.incrementRound()
     },
     incrementRound() {
-      this.currentBigBlind.chips -= this.bigBlind
-      this.currentSmallBlind.chips -= this.smallBlind
-      this.currentBigBlind.currentBet += this.bigBlind
-      this.currentSmallBlind.currentBet += this.smallBlind
+      if (this.currentBigBlind.chips <= this.bigBlind) {
+        this.currentBigBlind.currentBet += this.currentBigBlind.chips
+        this.currentBigBlind.chips = 0
+        this.currentBigBlind.isInLimbo = true
+      } else {
+        this.currentBigBlind.chips -= this.bigBlind
+        this.currentBigBlind.currentBet += this.bigBlind
+      }
+
+      if (this.currentSmallBlind.chips <= this.smallBlind) {
+        this.currentSmallBlind.currentBet += this.currentSmallBlind.chips
+        this.currentSmallBlind.chips = 0
+        this.currentSmallBlind.isInLimbo = true
+      } else {
+        this.currentSmallBlind.chips -= this.smallBlind
+        this.currentSmallBlind.currentBet += this.smallBlind
+      }
 
       this.roundEndPlayer = this.currentPlayer
 
@@ -123,15 +163,21 @@ export const usePokerStore = defineStore('poker', {
       this.internalRound = 0
       this.highestBet = 0
 
-      let betSum = 0
-      this.players.forEach((player) => {
-        betSum += player.currentBet
-        player.currentBet = 0
-      })
-      this.pot += betSum
+      const newSidePots = this.getSidepots()
+      this.sidePots = newSidePots.concat(this.sidePots)
+
+      if (newSidePots.length == 0) {
+        let betSum = 0
+        this.players.forEach((player) => {
+          betSum += player.currentBet
+          player.currentBet = 0
+        })
+        this.pot += betSum
+      }
 
       this.betRound++
-      if (this.betRound >= rounds.length-1) {
+      if (this.betRound >= rounds.length - 1 || this.activePlayerCount <= 1) {
+        this.elligibleShowdownPlayers = this.activePlayers.concat(this.playersInLimboWithoutSidepot)
         this.isShowdown = true
         return
       }
@@ -141,7 +187,7 @@ export const usePokerStore = defineStore('poker', {
     fold() {
       this.currentPlayer.hasFolded = true
 
-      if (this.activePlayerCount <= 1) this.endRound()
+      if (this.activePlayerCount <= 1 && this.players.every((p) => !p.isInLimbo)) this.endRound()
       else if (this.nextIsEndPlayer()) this.nextBetRound()
       else this.internalRound++
     },
@@ -161,6 +207,8 @@ export const usePokerStore = defineStore('poker', {
       this.currentPlayer.currentBet += amount
       this.highestBet += amount
 
+      if (this.currentPlayer.chips == 0) this.currentPlayer.isInLimbo = true
+
       this.roundEndPlayer = this.currentPlayer
 
       this.internalRound++
@@ -168,6 +216,7 @@ export const usePokerStore = defineStore('poker', {
     allIn() {
       this.currentPlayer.currentBet += this.currentPlayer.chips
       this.currentPlayer.chips = 0
+      this.currentPlayer.isInLimbo = true
 
       if (this.nextIsEndPlayer()) this.nextBetRound()
       else this.internalRound++
@@ -180,15 +229,30 @@ export const usePokerStore = defineStore('poker', {
         player = this.players[nextIndex]!
         if (player.id == this.roundEndPlayer?.id) return true
         i++
-      } while (player.hasFolded)
+      } while (player.hasFolded || player.isInLimbo)
 
       return false
     },
     selectWinner(winnerPlayers: PlayerModel[]) {
+      const chipsPerPlayer = Math.floor(this.pot / winnerPlayers.length)
       winnerPlayers.forEach((player) => {
-        player.chips += Math.round(this.pot / winnerPlayers.length)
+        player.chips += chipsPerPlayer
       })
-      this.endRound()
+
+      if (this.pot != chipsPerPlayer * winnerPlayers.length)
+        this.splitPotRemainder += this.pot - chipsPerPlayer * winnerPlayers.length
+
+      if (this.sidePots.filter((sp) => !sp.isDone).length == 0) this.endRound()
+      else {
+        this.sidePots.some((sidepot) => {
+          if (sidepot.isDone) return false
+
+          this.elligibleShowdownPlayers = this.elligibleShowdownPlayers.concat(sidepot.players)
+          this.pot = sidepot.pot
+          sidepot.isDone = true
+          return true
+        })
+      }
     },
     endRound() {
       if (this.activePlayerCount == 1 && this.activePlayers[0])
@@ -202,14 +266,17 @@ export const usePokerStore = defineStore('poker', {
           player.hasFolded = false
         }
 
+        player.isInLimbo = false
         player.currentBet = 0
       })
 
-      this.pot = 0
+      this.pot = this.splitPotRemainder
+      this.splitPotRemainder = 0
       this.betRound = 0
       this.internalRound = 0
       this.isShowdown = false
       this.highestBet = 0
+      this.sidePots = []
 
       if (this.activePlayerCount <= 1) {
         this.isOver = true
@@ -225,6 +292,70 @@ export const usePokerStore = defineStore('poker', {
       }
 
       this.incrementRound()
+    },
+    getSidepots(): SidepotModel[] {
+      const sidepots: SidepotModel[] = []
+
+      const bettingPlayers = this.players.filter((p) => p.currentBet != 0 && !p.hasFolded)
+      if (!bettingPlayers || bettingPlayers.length == 0) return sidepots
+
+      let remainingPot = this.pot
+
+      const playersBetSorted = bettingPlayers.sort((a, b) => b.currentBet - a.currentBet)
+      const highestBet = playersBetSorted[0]?.currentBet!
+
+      const uniqueLowerBets = _.uniq(
+        _.filter(bettingPlayers, function (p) {
+          return p.currentBet < highestBet
+        }).map((p) => p.currentBet),
+      ).sort()
+
+      if (this.playersInLimboWithoutSidepot.length != 0) {
+        sidepots.push({
+          pot: remainingPot,
+          players: this.playersInLimboWithoutSidepot,
+          isDone: false,
+        })
+        remainingPot = 0
+      }
+
+      if (uniqueLowerBets.length == 0) {
+        this.pot = remainingPot
+        return sidepots
+      }
+
+      const betsGrouped = _.groupBy(
+        bettingPlayers.filter((p) => p.currentBet < highestBet),
+        'currentBet',
+      )
+
+      uniqueLowerBets.forEach((bet) => {
+        const playersWithBet = betsGrouped[bet] ?? []
+
+        const playersWithHigherBet = bettingPlayers.filter((p) => p.currentBet > bet)
+
+        const nextHighestBet =
+          uniqueLowerBets
+            .concat(highestBet)
+            .filter((b) => b > bet)
+            .sort()[0] ?? highestBet
+
+        sidepots.push({
+          pot: remainingPot + (playersWithHigherBet.length + playersWithBet.length) * bet,
+          players: playersWithBet,
+          isDone: false,
+        })
+
+        playersWithBet.forEach((player) => {
+          player.isInLimbo = true
+        })
+        remainingPot = playersWithHigherBet.length * (nextHighestBet - bet)
+      })
+
+      bettingPlayers.forEach((player) => (player.currentBet = 0))
+
+      this.pot = remainingPot
+      return sidepots.reverse()
     },
   },
 })

@@ -39,6 +39,7 @@ function onStartGame() {
           :is-small-blind="store.currentSmallBlind == player"
           :is-current="store.currentPlayer == player"
           :is-showdown="store.isShowdown"
+          :elligible-showdown-players="store.elligibleShowdownPlayers"
           @delete="store.deletePlayer(player.id)"
         />
       </div>

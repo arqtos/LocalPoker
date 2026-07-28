@@ -69,14 +69,25 @@ function onSelectWinner() {
           :is-small-blind="store.currentSmallBlind == player"
           :is-current="store.currentPlayer == player"
           :is-showdown="store.isShowdown"
+          :elligible-showdown-players="store.elligibleShowdownPlayers"
           @delete="store.deletePlayer(player.id)"
         />
       </div>
     </div>
 
-    <div class="flex flex-col items-center gap-5">
-      <span class="text-4xl">Pot</span>
-      <span class="text-3xl">{{ store.pot }}</span>
+    <div class="flex flex-row items-center gap-5">
+      <div class="flex flex-col items-center gap-5">
+        <span class="text-4xl">Pot</span>
+        <span class="text-3xl">{{ store.pot }}</span>
+      </div>
+      <div
+        v-if="!store.isShowdown"
+        v-for="sidepot in store.sidePots"
+        class="flex flex-col items-center gap-5"
+      >
+        <span class="text-4xl">Sidepot {{ store.sidePots.indexOf(sidepot) + 1 }}</span>
+        <span class="text-3xl">{{ sidepot.pot }}</span>
+      </div>
     </div>
 
     <div v-if="!store.isShowdown" class="flex flex-row gap-5 md:gap-10">
@@ -92,7 +103,9 @@ function onSelectWinner() {
       >
       <Button v-else class="w-20 md:w-40 h-15 font-bold" @click="store.allIn()">All In</Button>
     </div>
-    <Button v-else class="w-20 md:w-40 h-15 font-bold" @click="onSelectWinner()">Select Winner</Button>
+    <Button v-else class="w-20 md:w-40 h-15 font-bold" @click="onSelectWinner()"
+      >Select Winner</Button
+    >
 
     <component
       :is="Modal.Root"
@@ -118,10 +131,7 @@ function onSelectWinner() {
         </div>
         <Button
           class="w-full mt-4"
-          @click="
-            store.raise(raiseValue),
-            raiseVisible = false
-          "
+          @click="(store.raise(raiseValue), (raiseVisible = false))"
           :disabled="raiseValue < store.minBet || raiseValue > store.currentPlayer.chips"
         >
           Raise
