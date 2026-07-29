@@ -5,13 +5,17 @@ import type { PlayerModel } from '@/models/PlayerModel'
 import { usePokerStore } from '@/stores/poker'
 import { useMediaQuery } from '@vueuse/core'
 import { Button, Dialog, Drawer, InputNumber, Slider, Toast, useToast } from 'primevue'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 
 const store = usePokerStore()
 const toast = useToast()
 
 const raiseVisible = ref(false)
 const raiseValue = ref(store.minBet)
+
+watch(() => store.minBet, (bet) => {
+  raiseValue.value = bet;
+})
 
 const selectedPlayers = ref<PlayerModel[]>([])
 
@@ -43,15 +47,15 @@ function onSelectWinner() {
     <div class="flex flex-row gap-10">
       <LabelValue
         :label="'Big Blind'"
-        label-size="md"
+        label-size="text-md"
         :value="store.bigBlind.toString()"
-        value-size="2xl"
+        value-size="text-2xl"
       />
       <LabelValue
         :label="'Small Blind'"
-        label-size="md"
+        label-size="text-md"
         :value="store.smallBlind.toString()"
-        value-size="2xl"
+        value-size="text-2xl"
       />
     </div>
 
@@ -85,7 +89,7 @@ function onSelectWinner() {
 
     <div class="flex flex-row items-center gap-5">
       <div class="flex flex-col items-center gap-5">
-        <LabelValue label="Pot" label-size="xl" :value="store.pot.toString()" value-size="4xl" />
+        <LabelValue label="Pot" label-size="text-xl" :value="store.pot.toString()" value-size="text-4xl" />
       </div>
       <div
         v-if="!store.isShowdown"
@@ -94,9 +98,9 @@ function onSelectWinner() {
       >
         <LabelValue
           :label="'Sidepot ' + (store.sidePots.indexOf(sidepot) + 1)"
-          label-size="xl"
+          label-size="text-xl"
           :value="sidepot.pot.toString()"
-          value-size="4xl"
+          value-size="text-4xl"
         />
       </div>
     </div>
@@ -143,7 +147,7 @@ function onSelectWinner() {
         <Button
           class="w-full mt-4"
           @click="(store.raise(raiseValue), (raiseVisible = false))"
-          :disabled="raiseValue < store.minBet || raiseValue > store.currentPlayer.chips"
+          :disabled="raiseValue < store.minBet || raiseValue> store.currentPlayer.chips"
         >
           Bet/Raise
         </Button>

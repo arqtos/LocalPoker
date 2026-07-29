@@ -60,7 +60,7 @@ function onSelectPlayer() {
       </Button>
     </div>
     <div v-else class="grid grid-cols-[1fr_auto] w-full h-full" @click="onSelectPlayer()">
-      <div class="flex flex-col">
+      <div class="flex flex-col pointer-events-none">
         <div class="text-sm md:text-xl mb-1 flex flex-row gap-1 truncate">
           {{ model }}
           <div v-if="!props.isShowdown" class="flex justify-center my-auto">
@@ -73,7 +73,7 @@ function onSelectPlayer() {
         <span>Current Bet: {{ props.player.currentBet }}</span>
       </div>
 
-      <div class="flex flex-col items-end justify-start">
+      <div class="flex flex-col items-end justify-start pointer-events-none">
         <Badge v-if="isDealer" value="Dealer" severity="secondary" class="w-fit" />
         <Badge
           v-if="isBigBlind"

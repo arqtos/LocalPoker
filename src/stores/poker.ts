@@ -41,6 +41,7 @@ export const usePokerStore = defineStore('poker', {
     bigBlind: 10,
     // blindStep: 0,
     highestBet: 0,
+    betStep: 0,
     splitPotRemainder: 0,
   }),
   getters: {
@@ -95,7 +96,11 @@ export const usePokerStore = defineStore('poker', {
       return this.bigBlind / 2
     },
     minBet(): number {
-      return this.highestBet < this.bigBlind ? this.bigBlind : this.highestBet
+      return this.betStep == 0 
+        ? this.bigBlind
+        : this.betStep == 1
+          ? this.highestBet * 2
+          : this.highestBet
     },
     betRoundName(): string {
       return rounds[this.betRound % rounds.length]!
@@ -163,6 +168,7 @@ export const usePokerStore = defineStore('poker', {
     nextBetRound() {
       this.internalRound = 0
       this.highestBet = 0
+      this.betStep = 0
 
       const newSidePots = this.getSidepots()
       this.sidePots = newSidePots.concat(this.sidePots)
@@ -215,6 +221,7 @@ export const usePokerStore = defineStore('poker', {
 
       this.roundEndPlayer = this.currentPlayer
 
+      this.betStep++
       this.internalRound++
     },
     allIn() {
@@ -280,6 +287,7 @@ export const usePokerStore = defineStore('poker', {
       this.internalRound = 0
       this.isShowdown = false
       this.highestBet = 0
+      this.betStep = 0
       this.sidePots = []
 
       if (this.activePlayerCount <= 1) {

@@ -25,6 +25,8 @@ function onStartGame() {
   <div class="flex flex-col justify-center items-center gap-15">
     <Toast />
 
+    <span class="text-3xl">Setup the Game</span>
+
     <div class="flex flex-wrap justify-center lg:max-w-4/5 gap-1 mx-1">
       <div v-for="player in store.players" :key="player.id">
         <PlayerCard

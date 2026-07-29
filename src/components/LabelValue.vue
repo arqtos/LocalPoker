@@ -9,10 +9,10 @@ const props = defineProps<{
 
 <template>
   <div class="flex flex-col">
-    <span :class="'text-' + props.labelSize + ' text-slate-400'">
+    <span :class="props.labelSize + ' text-slate-400'">
       {{ props.label }}
     </span>
-    <span :class="'text-' + props.valueSize">
+    <span :class="props.valueSize">
       {{ props.value }}
     </span>
   </div>
