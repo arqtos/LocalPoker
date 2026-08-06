@@ -1,20 +1,32 @@
 <script setup lang="ts">
 import LabelValue from '@/components/LabelValue.vue'
 import PlayerCard from '@/components/PlayerCard.vue'
+import RoundConfirmationDialog from '@/components/RoundConfirmationDialog.vue'
 import type { PlayerModel } from '@/models/PlayerModel'
 import { usePokerStore } from '@/stores/poker'
+import { ExclamationTriangle } from '@primeicons/vue'
 import { useMediaQuery } from '@vueuse/core'
-import { Button, Dialog, Drawer, InputNumber, Slider, Toast, useToast } from 'primevue'
+import { Button, ConfirmPopup, Dialog, Drawer, InputNumber, Slider, Toast, useConfirm, useDialog, useToast } from 'primevue'
 import { computed, ref, watch } from 'vue'
 
 const store = usePokerStore()
 const toast = useToast()
+const confirm = useConfirm()
 
 const raiseVisible = ref(false)
 const raiseValue = ref(store.minBet)
+watch(
+  () => store.minBet,
+  (bet) => {
+    raiseValue.value = bet
+  },
+)
 
-watch(() => store.minBet, (bet) => {
-  raiseValue.value = bet;
+const isRoundConfirmationDialogVisible = ref(true)
+watch([() => store.betRound, () => store.round], ([newBetRound, newRound]) => {
+  console.log(newBetRound)
+  if (newBetRound != undefined && newBetRound >= 4) return
+  isRoundConfirmationDialogVisible.value = true
 })
 
 const selectedPlayers = ref<PlayerModel[]>([])
@@ -37,11 +49,64 @@ function onSelectWinner() {
     selectedPlayers.value = []
   }
 }
+
+const confirmFold = (event: any) => {
+  confirm.require({
+    group: 'popup',
+    target: event.currentTarget,
+    message: 'Are you sure you want to proceed?',
+    icon: ExclamationTriangle,
+    rejectProps: {
+      label: 'Cancel',
+      severity: 'secondary',
+      outlined: true
+    },
+    acceptProps: {
+      label: 'Fold'
+    },
+    accept: () => {
+      store.fold()
+    },
+});
+};
+
+const confirmCall = (event: any) => {
+  if ((store.highestBet - store.currentPlayer.currentBet) == 0) {
+    store.call()
+    return
+  }
+
+  confirm.require({
+    group: 'popup',
+    target: event.currentTarget,
+    message: 'Are you sure you want to proceed?',
+    icon: ExclamationTriangle,
+    rejectProps: {
+      label: 'Cancel',
+      severity: 'secondary',
+      outlined: true
+    },
+    acceptProps: {
+      label: 'Call',
+    },
+    accept: () => {
+      store.call()
+    },
+  });
+};
 </script>
 
 <template>
   <div class="flex flex-col justify-center items-center gap-7 md:gap-15">
     <Toast />
+    <ConfirmPopup group="popup" />
+    <RoundConfirmationDialog
+      v-model="isRoundConfirmationDialogVisible"
+      :bet-round-name="store.betRoundName"
+      :bet-round-index="store.betRound"
+      :round="(store.round + 1).toString()"
+    />
+
     <span class="text-3xl">{{ store.betRoundName }} Round</span>
 
     <div class="flex flex-row gap-10">
@@ -89,7 +154,12 @@ function onSelectWinner() {
 
     <div class="flex flex-row items-center gap-5">
       <div class="flex flex-col items-center gap-5">
-        <LabelValue label="Pot" label-size="text-xl" :value="store.pot.toString()" value-size="text-4xl" />
+        <LabelValue
+          label="Pot"
+          label-size="text-xl"
+          :value="store.pot.toString()"
+          value-size="text-4xl"
+        />
       </div>
       <div
         v-if="!store.isShowdown"
@@ -106,15 +176,15 @@ function onSelectWinner() {
     </div>
 
     <div v-if="!store.isShowdown" class="flex flex-row gap-5 md:gap-10">
-      <Button class="w-20 md:w-40 h-15" @click="store.fold()">Fold</Button>
-      <Button v-if="!store.mustAllIn" class="w-20 md:w-40 h-15 font-bold" @click="store.call()"
-        >Check/Call</Button
+      <Button class="w-20 md:w-40 h-15" @click="confirmFold($event)">Fold</Button>
+      <Button v-if="!store.mustAllIn" class="w-20 md:w-40 h-15 font-bold" @click="confirmCall($event)"
+        >{{ (store.highestBet - store.currentPlayer.currentBet) == 0 ? 'Check' : 'Call' }}</Button
       >
       <Button
         v-if="!store.mustAllIn"
         class="w-20 md:w-40 h-15 font-bold"
         @click="raiseVisible = true"
-        >Bet/Raise</Button
+        >{{ store.highestBet <= store.bigBlind ? 'Bet' : 'Raise' }}</Button
       >
       <Button v-else class="w-20 md:w-40 h-15 font-bold" @click="store.allIn()">All In</Button>
     </div>
@@ -147,9 +217,9 @@ function onSelectWinner() {
         <Button
           class="w-full mt-4"
           @click="(store.raise(raiseValue), (raiseVisible = false))"
-          :disabled="raiseValue < store.minBet || raiseValue> store.currentPlayer.chips"
+          :disabled="raiseValue < store.minBet || raiseValue > store.currentPlayer.chips"
         >
-          Bet/Raise
+          {{ store.highestBet <= store.bigBlind ? 'Bet' : 'Raise' }}
         </Button>
       </div>
     </component>

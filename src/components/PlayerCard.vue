@@ -50,7 +50,7 @@ function onSelectPlayer() {
 <template>
   <div
     :class="
-      'flex p-3 md:p-5 h-full bg-slate-900/50 ' + isCurrentStyle + hasFoldedStyle + isBankruptStyle
+      'flex p-3 md:p-5 h-full bg-slate-900 ' + isCurrentStyle + hasFoldedStyle + isBankruptStyle
     "
   >
     <div v-if="isSetup" class="flex gap-4 m-auto">

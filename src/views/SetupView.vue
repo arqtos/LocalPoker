@@ -43,7 +43,7 @@ function onStartGame() {
           @delete="store.deletePlayer(player.id)"
         />
       </div>
-      <div class="min-w-40 min-h-20 bg-slate-900/50 border border-white/10">
+      <div class="min-w-40 min-h-20 bg-slate-900 border border-white/10">
         <Button class="w-full h-full rounded-none!" variant="text" @click="store.addPlayer()">
           <Plus />
         </Button>

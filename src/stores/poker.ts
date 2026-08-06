@@ -10,13 +10,14 @@ function getNextActivePlayer(
   players: PlayerModel[],
   startPoint: number,
   currentPlayer: PlayerModel,
+  skipPlayersChange: boolean,
 ): [PlayerModel, number] {
   let i: number = 0
   let player: PlayerModel
   do {
     const nextIndex = (startPoint + i) % players.length
     player = players[nextIndex]!
-    if (player == currentPlayer) return [player, i]
+    if (player == currentPlayer && skipPlayersChange) return [player, i]
 
     i++
   } while (player.hasFolded || player.isBankrupt || player.isInLimbo)
@@ -34,6 +35,7 @@ export const usePokerStore = defineStore('poker', {
     roundEndPlayer: null as PlayerModel | null,
     round: 0,
     betRound: 0,
+    lastBetRound: -1,
     internalRound: 0,
     pot: 0,
     sidePots: [] as SidepotModel[],
@@ -63,8 +65,11 @@ export const usePokerStore = defineStore('poker', {
         this.players,
         startPoint + this.internalRound + 1,
         this.currentPlayer,
+        this.betRound == this.lastBetRound,
       )
+
       this.internalRound += response[1]
+      this.lastBetRound = this.betRound;
       return response[0]
     },
     currentBigBlind(): PlayerModel {
@@ -72,13 +77,24 @@ export const usePokerStore = defineStore('poker', {
         this.players,
         this.currentSmallBlind.id + 1,
         this.currentBigBlind,
+        true,
       )[0]
     },
     currentSmallBlind(): PlayerModel {
-      return getNextActivePlayer(this.players, this.currentDealer.id + 1, this.currentSmallBlind)[0]
+      return getNextActivePlayer(
+        this.players,
+        this.currentDealer.id + 1,
+        this.currentSmallBlind,
+        true,
+      )[0]
     },
     currentDealer(): PlayerModel {
-      return getNextActivePlayer(this.players, this.round % this.playerCount, this.currentDealer)[0]
+      return getNextActivePlayer(
+        this.players,
+        this.round % this.playerCount,
+        this.currentDealer,
+        true,
+      )[0]
     },
     playersInLimboWithoutSidepot(): PlayerModel[] {
       return this.players.filter(
@@ -96,7 +112,7 @@ export const usePokerStore = defineStore('poker', {
       return this.bigBlind / 2
     },
     minBet(): number {
-      return this.betStep == 0 
+      return this.betStep == 0
         ? this.bigBlind
         : this.betStep == 1
           ? this.highestBet * 2
@@ -369,5 +385,8 @@ export const usePokerStore = defineStore('poker', {
       this.pot = remainingPot
       return sidepots.reverse()
     },
+  },
+  persist: {
+    storage: sessionStorage,
   },
 })

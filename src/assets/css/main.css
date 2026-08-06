@@ -15,7 +15,7 @@
 }
 
 .p-inputnumber-button {
-  @apply bg-slate-900/50!;
+  @apply bg-slate-900!;
 }
 
 #p-license-host {

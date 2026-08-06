@@ -1,5 +1,6 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
+import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
 
 import App from './App.vue'
 import router from './router'
@@ -8,6 +9,7 @@ import PrimeVue from 'primevue/config'
 import Aura from '@primeuix/themes/aura'
 import { definePreset } from '@primeuix/themes'
 import ToastService from 'primevue/toastservice'
+import { ConfirmationService } from 'primevue'
 
 const stylePreset = definePreset(Aura, {
   semantic: {
@@ -47,7 +49,10 @@ const stylePreset = definePreset(Aura, {
 
 const app = createApp(App)
 
-app.use(createPinia())
+const pinia = createPinia()
+app.use(pinia)
+pinia.use(piniaPluginPersistedstate)
+
 app.use(router)
 
 app.use(PrimeVue, {
@@ -57,5 +62,6 @@ app.use(PrimeVue, {
   license: import.meta.env.VITE_PRIME_VUE_LICENSE_KEY,
 })
 app.use(ToastService)
+app.use(ConfirmationService)
 
 app.mount('#app')
